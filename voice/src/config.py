@@ -22,7 +22,7 @@ VAD_USE_ONNX: bool = os.getenv("VAD_USE_ONNX", "true").lower() == "true"
 
 # ── Wake Word (openwakeword) ──────────────────────────────────────────────────
 WAKE_WORD_ENABLED: bool = os.getenv("WAKE_WORD_ENABLED", "true").lower() == "true"
-WAKE_WORD_MODEL: str = os.getenv("WAKE_WORD_MODEL", "hey_mycroft") # e.g. alexa, hey_mycroft
+WAKE_WORD_MODEL: str = os.getenv("WAKE_WORD_MODEL", "hey_jarvis") # e.g. hey_jarvis, alexa, hey_mycroft
 WAKE_WORD_THRESHOLD: float = float(os.getenv("WAKE_WORD_THRESHOLD", "0.5"))
 
 # ── Text-to-Speech (edge-tts) ─────────────────────────────────────────────────
