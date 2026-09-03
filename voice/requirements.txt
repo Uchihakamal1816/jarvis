@@ -1,0 +1,40 @@
+# ── JARVIS Voice Layer — Python dependencies ──────────────────────────────────
+#
+# INSTALL ORDER MATTERS:
+#   1. torch (CPU-only wheel, installed separately in Dockerfile)
+#   2. Everything below
+#
+# Silero VAD can use ONNX instead of torch (set VAD_USE_ONNX=true, default).
+# When using ONNX mode, torch is still required by the silero-vad package
+# for its internal utilities, but at minimal size with CPU-only wheel.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Voice Activity Detection
+silero-vad==6.2.1
+
+# Wake Word Detection
+openwakeword>=0.6.0
+
+# Text-to-Speech
+edge-tts>=6.1.9
+pygame>=2.5.0
+
+# Speech to Text — faster-whisper (CTranslate2 backend, int8 CPU quantization)
+# 4-8x faster than openai-whisper with identical accuracy
+faster-whisper
+
+# Audio Capture
+sounddevice==0.5.1
+
+# ONNX runtime (used by Silero VAD when VAD_USE_ONNX=true)
+onnxruntime==1.19.2
+
+# Numeric processing (int16 ↔ float32 conversion)
+numpy>=1.24.0,<2.0
+
+# Optional: webhook output mode
+# requests>=2.31.0
+
+# Testing
+pytest>=7.4.0
+pytest-timeout>=2.1.0
