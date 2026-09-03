@@ -108,23 +108,30 @@ async def process_with_agents(user_prompt: str) -> str:
     logger.info(f"Hermes Orchestrator received prompt: '{user_prompt}'")
     config = build_orchestrator_config()
 
-    async with Agent(config) as supervisor:
-        response = await supervisor.chat(user_prompt)
-        result_text = await response.text()
+    try:
+        async with Agent(config) as supervisor:
+            response = await supervisor.chat(user_prompt)
+            result_text = await response.text()
 
-        # Track Antigravity Gemini call
-        try:
-            from core.src.api_battery_tracker import api_battery
-            api_battery.record_gemini_call()
-        except ImportError:
-            pass
+            # Track Antigravity Gemini call
+            try:
+                from core.src.api_battery_tracker import api_battery
+                api_battery.record_gemini_call()
+            except ImportError:
+                pass
 
-        # Remove subagent intermediate handoff messages if concatenated
-        cleaned_result = re.sub(r"I have gathered [^.\n]+\.\s*", "", result_text, flags=re.IGNORECASE)
-        cleaned_result = re.sub(r"sent the report to the parent agent\.?\s*", "", cleaned_result, flags=re.IGNORECASE)
+            # Remove subagent intermediate handoff messages if concatenated
+            cleaned_result = re.sub(r"I have gathered [^.\n]+\.\s*", "", result_text, flags=re.IGNORECASE)
+            cleaned_result = re.sub(r"sent the report to the parent agent\.?\s*", "", cleaned_result, flags=re.IGNORECASE)
 
-        logger.info("Hermes Orchestrator successfully processed prompt.")
-        return cleaned_result.strip()
+            logger.info("Hermes Orchestrator successfully processed prompt.")
+            return cleaned_result.strip()
+    except Exception as exc:
+        err_str = str(exc)
+        logger.error(f"Hermes execution error: {err_str}")
+        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+            return "Gemini API rate limit reached. Please wait a minute before trying again."
+        return "I encountered a temporary issue with the subagent service. Please try again."
 
 
 if __name__ == "__main__":

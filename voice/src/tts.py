@@ -28,6 +28,12 @@ def clean_text_for_speech(text: str) -> str:
     Cleans raw markdown text into speech-friendly plain text.
     Strips asterisks, backticks, header symbols, subagent handoff boilerplate, etc.
     """
+    # 0. Catch raw Go / Python stack trace logs and sanitize to concise spoken error
+    if "Harness process exited" in text or "ERROR: logging before" in text or "GenerateContent failed" in text:
+        if "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower():
+            return "Gemini API rate limit reached. Please wait a minute before trying again."
+        return "I encountered a technical issue with the subagent harness. Please try again."
+
     # 1. Remove subagent handoff boilerplate messages & bracket tags
     text = re.sub(r"\[[A-Z0-9_]+\]\s*", "", text)
     text = re.sub(r"I have gathered [^.\n]+\.\s*", "", text, flags=re.IGNORECASE)
