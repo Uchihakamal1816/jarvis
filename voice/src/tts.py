@@ -93,6 +93,9 @@ class TTSEngine:
             # Block until audio finishes playing
             while pygame.mixer.music.get_busy():
                 await asyncio.sleep(0.1)
+
+            # Brief 300ms echo dissipation buffer so mic doesn't re-hear TTS tail
+            await asyncio.sleep(0.3)
                 
             # Cleanup
             pygame.mixer.music.unload()
