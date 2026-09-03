@@ -70,6 +70,59 @@ class GroqSummarizer:
 
         return raw_response
 
+    def route_brain_intent(self, user_input: str) -> tuple[str, str | None]:
+        """
+        Uses Groq LLM as the primary brain to analyze the query.
+        Returns ("DIRECT", response_text) for casual conversation / general knowledge,
+        or ("HERMES", None) for complex tasks requiring Hermes subagents / system tools.
+        """
+        if not self.client:
+            return ("HERMES", None)
+
+        system_prompt = (
+            "You are the primary brain and intent router for JARVIS. Analyze the user prompt.\n"
+            "Determine if it requires system subagent tools (PC folder search, file reading, system metrics, shell commands, web search) "
+            "OR if it is a casual conversation/general knowledge question that you can answer directly.\n\n"
+            "Respond in EXACTLY one of two formats:\n\n"
+            "Format 1 (For simple conversation / general knowledge):\n"
+            "ACTION: DIRECT\n"
+            "RESPONSE: <your concise, 1-2 sentence spoken response>\n\n"
+            "Format 2 (For tasks needing subagents, system tools, PC folder/code inspection, web search):\n"
+            "ACTION: HERMES"
+        )
+
+        try:
+            completion = self.client.chat.completions.create(
+                model="qwen/qwen3.8-27b",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_input},
+                ],
+                max_tokens=120,
+                temperature=0.1,
+            )
+            # Track Groq API call
+            try:
+                from .api_battery_tracker import api_battery
+                api_battery.record_groq_call()
+            except ImportError:
+                pass
+
+            content = (completion.choices[0].message.content or "").strip()
+            log.info("Groq Brain Router decision: '%s'", content)
+
+            if "ACTION: DIRECT" in content and "RESPONSE:" in content:
+                response = content.split("RESPONSE:", 1)[1].strip()
+                response = response.replace("*", "").replace("#", "")
+                return ("DIRECT", response)
+
+            return ("HERMES", None)
+
+        except Exception as exc:
+            log.error("Groq Brain Router failed: %s. Falling back to HERMES.", exc)
+            return ("HERMES", None)
+
 
 # Global singleton instance
 groq_summarizer = GroqSummarizer()
+

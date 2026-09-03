@@ -85,37 +85,55 @@ class OutputHandler:
                 print(f"\n[VOICE INPUT] {user_text}")
                 
                 from .tts import tts_engine
-                import queue
 
-                result_queue = queue.Queue()
+                # Fast-path: Check API battery keywords
+                lowered = user_text.lower()
+                if any(kw in lowered for kw in ["battery", "api limit", "api count", "calls left", "quota left", "api status", "limits left"]):
+                    from core.src.api_battery_tracker import api_battery
+                    resp = api_battery.get_battery_speech_summary()
+                    print(f"\n[SUPERVISOR] {resp}\n")
+                    tts_engine.speak(resp)
+                    return
 
-                # 1. Execute Hermes agent processing in background worker thread
-                def _agent_worker():
+                # 1. Use Groq LLM Brain to decide execution path
+                action, direct_response = self._router.decide_intent(user_text)
+
+                if action == "DIRECT" and direct_response:
+                    # Casual conversation / general knowledge -> Direct response in ~0.2s! NO thinking quote!
+                    print(f"\n[GROQ BRAIN] {direct_response}\n")
+                    tts_engine.speak(direct_response)
+                else:
+                    # HERMES Subagent path -> Needs system tools / search. Play thinking quote while agents execute!
+                    import queue
+
+                    result_queue = queue.Queue()
+
+                    def _agent_worker():
+                        try:
+                            res = self._router.execute_hermes(user_text, self._session)
+                            result_queue.put(res)
+                        except Exception as err:
+                            log.error("Error during Hermes execution: %s", err)
+                            result_queue.put(f"I encountered an error processing your request: {err}")
+
+                    worker_thread = threading.Thread(target=_agent_worker, daemon=True)
+                    worker_thread.start()
+
+                    # Speak thinking quote during processing window
                     try:
-                        res = self._router.route_intent(user_text, self._session)
-                        result_queue.put(res)
-                    except Exception as err:
-                        log.error("Error during intent routing worker: %s", err)
-                        result_queue.put(f"I encountered an error processing your request: {err}")
+                        from core.src.quotes import get_thinking_phrase
+                        thinking_msg = get_thinking_phrase()
+                        print(f"[THINKING QUOTE] {thinking_msg}")
+                        tts_engine.speak(thinking_msg)
+                    except Exception as exc:
+                        log.warning("Could not load thinking quote: %s", exc)
 
-                worker_thread = threading.Thread(target=_agent_worker, daemon=True)
-                worker_thread.start()
+                    # Retrieve agent result from stack/queue once quote finishes
+                    response = result_queue.get()
+                    print(f"\n[SUPERVISOR] {response}\n")
 
-                # 2. Speak thinking quote during processing window
-                try:
-                    from core.src.quotes import get_thinking_phrase
-                    thinking_msg = get_thinking_phrase()
-                    print(f"[THINKING QUOTE] {thinking_msg}")
-                    tts_engine.speak(thinking_msg)
-                except Exception as exc:
-                    log.warning("Could not load thinking quote: %s", exc)
-
-                # 3. Retrieve agent result from stack/queue once quote finishes
-                response = result_queue.get()
-                print(f"\n[SUPERVISOR] {response}\n")
-
-                # 4. Speak retrieved agent response sequentially right after the quote
-                tts_engine.speak(response)
+                    # Speak retrieved agent response sequentially right after the quote
+                    tts_engine.speak(response)
         else:
             log.warning("Unknown output mode '%s'; falling back to stdout", self._mode)
             print(json.dumps(payload), flush=True)
