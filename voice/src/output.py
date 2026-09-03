@@ -119,14 +119,10 @@ class OutputHandler:
                     worker_thread = threading.Thread(target=_agent_worker, daemon=True)
                     worker_thread.start()
 
-                    # Speak thinking quote during processing window
-                    try:
-                        from core.src.quotes import get_thinking_phrase
-                        thinking_msg = get_thinking_phrase()
-                        print(f"[THINKING QUOTE] {thinking_msg}")
-                        tts_engine.speak(thinking_msg)
-                    except Exception as exc:
-                        log.warning("Could not load thinking quote: %s", exc)
+                    # Speak generation status phrase while Hermes subagents execute
+                    wait_msg = "Please wait sir, I am generating your response."
+                    print(f"[STATUS] {wait_msg}")
+                    tts_engine.speak(wait_msg)
 
                     # Retrieve agent result from stack/queue once quote finishes
                     response = result_queue.get()
