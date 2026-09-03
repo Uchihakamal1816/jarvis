@@ -191,12 +191,12 @@ class Pipeline:
             self._pre_roll.clear()
             if self._wakeword.process_chunk(raw_bytes):
                 log.info("Wake word triggered! Transitioning to IDLE.")
-                print("\n[JARVIS] Hi Kamal, I am listening...")
+                print("\n[JARVIS] Listening...")
                 
-                # Speak greeting in a background thread so we don't block audio capture
+                # Speak ultra-short acknowledgment so mic opens instantly for user speech
                 import threading
                 from .tts import tts_engine
-                threading.Thread(target=tts_engine.speak, args=("Hi Kamal, I am listening",), daemon=True).start()
+                threading.Thread(target=tts_engine.speak, args=("Listening!",), daemon=True).start()
                 
                 self._state = _IDLE
             return
