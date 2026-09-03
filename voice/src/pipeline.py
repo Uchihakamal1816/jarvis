@@ -192,15 +192,10 @@ class Pipeline:
             if self._wakeword.process_chunk(raw_bytes):
                 log.info("Wake word triggered! Transitioning to IDLE.")
                 
-                try:
-                    from core.src.quotes import get_greeting_quote
-                    greeting = get_greeting_quote()
-                except Exception:
-                    greeting = "Hi Kamal, how are you today? Here is an idea for today: Excellence is a habit."
-
+                greeting = "Hi Kamal, how are you today?"
                 print(f"\n[JARVIS] {greeting}")
                 
-                # Speak greeting + quote in a background thread so user listens first
+                # Speak clean wake word greeting in background thread
                 import threading
                 from .tts import tts_engine
                 threading.Thread(target=tts_engine.speak, args=(greeting,), daemon=True).start()

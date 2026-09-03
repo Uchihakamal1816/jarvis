@@ -81,23 +81,41 @@ class OutputHandler:
             self._post_webhook(payload)
         elif self._mode == "core":
             if payload["event"] == "transcript" and payload.get("text"):
-                print(f"\n[VOICE INPUT] {payload['text']}")
+                user_text = payload["text"]
+                print(f"\n[VOICE INPUT] {user_text}")
                 
-                # Speak a natural thinking pre-phrase + quote while Hermes processes
                 from .tts import tts_engine
+                import queue
+
+                result_queue = queue.Queue()
+
+                # 1. Execute Hermes agent processing in background worker thread
+                def _agent_worker():
+                    try:
+                        res = self._router.route_intent(user_text, self._session)
+                        result_queue.put(res)
+                    except Exception as err:
+                        log.error("Error during intent routing worker: %s", err)
+                        result_queue.put(f"I encountered an error processing your request: {err}")
+
+                worker_thread = threading.Thread(target=_agent_worker, daemon=True)
+                worker_thread.start()
+
+                # 2. Speak thinking quote during processing window
                 try:
                     from core.src.quotes import get_thinking_phrase
                     thinking_msg = get_thinking_phrase()
                     print(f"[THINKING QUOTE] {thinking_msg}")
-                    threading.Thread(target=tts_engine.speak, args=(thinking_msg,), daemon=True).start()
+                    tts_engine.speak(thinking_msg)
                 except Exception as exc:
-                    log.warning("Could not load quote: %s", exc)
+                    log.warning("Could not load thinking quote: %s", exc)
 
-                response = self._router.route_intent(payload["text"], self._session)
+                # 3. Retrieve agent result from stack/queue once quote finishes
+                response = result_queue.get()
                 print(f"\n[SUPERVISOR] {response}\n")
-                
-                # Speak final response
-                threading.Thread(target=tts_engine.speak, args=(response,), daemon=True).start()
+
+                # 4. Speak retrieved agent response sequentially right after the quote
+                tts_engine.speak(response)
         else:
             log.warning("Unknown output mode '%s'; falling back to stdout", self._mode)
             print(json.dumps(payload), flush=True)
