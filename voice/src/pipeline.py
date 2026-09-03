@@ -282,8 +282,9 @@ class Pipeline:
 
             result = self._stt.transcribe(audio_bytes)
 
-            if result.is_empty:
-                log.debug("Empty transcript — skipping emit.")
+            clean_txt = result.text.strip().lower().rstrip(".,!?")
+            if result.is_empty or clean_txt in ["uh", "um", "ah", "er", "hmm", "huh", "yeah"]:
+                log.debug("Empty or pure filler transcript ('%s') — skipping emit.", result.text)
             else:
                 self._output.emit_transcript(
                     text=result.text,

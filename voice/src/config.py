@@ -16,7 +16,7 @@ PRE_ROLL_CHUNKS: int = int(
 
 # ── Silero VAD ────────────────────────────────────────────────────────────────
 VAD_THRESHOLD: float = float(os.getenv("VAD_THRESHOLD", "0.5"))
-VAD_MIN_SILENCE_MS: int = int(os.getenv("VAD_MIN_SILENCE_MS", "500"))  # 500ms silence threshold for fast utterance cutoff
+VAD_MIN_SILENCE_MS: int = int(os.getenv("VAD_MIN_SILENCE_MS", "900"))  # 900ms silence threshold allows natural mid-sentence pauses
 VAD_SPEECH_PAD_MS: int = int(os.getenv("VAD_SPEECH_PAD_MS", "100"))
 VAD_USE_ONNX: bool = os.getenv("VAD_USE_ONNX", "true").lower() == "true"
 
