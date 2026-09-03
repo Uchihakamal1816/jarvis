@@ -81,13 +81,14 @@ class GroqSummarizer:
 
         system_prompt = (
             "You are the primary brain and intent router for JARVIS. Analyze the user prompt.\n"
-            "Determine if it requires system subagent tools (PC folder search, file reading, system metrics, shell commands, web search) "
-            "OR if it is a casual conversation/general knowledge question that you can answer directly.\n\n"
+            "Handle ALL facts, news, new topics, general knowledge, explanations, science, history, and casual conversation DIRECTLY.\n"
+            "ONLY delegate to HERMES if the prompt explicitly requires local PC system commands (CPU/RAM/disk metrics, SSH health) "
+            "or local PC folder/file code searching.\n\n"
             "Respond in EXACTLY one of two formats:\n\n"
-            "Format 1 (For simple conversation / general knowledge):\n"
+            "Format 1 (For facts, news, new topics, general knowledge, explanations, and casual conversation):\n"
             "ACTION: DIRECT\n"
             "RESPONSE: <your concise, 1-2 sentence spoken response>\n\n"
-            "Format 2 (For tasks needing subagents, system tools, PC folder/code inspection, web search):\n"
+            "Format 2 (ONLY for local PC system metrics, SSH checks, local folder search, or reading local PC code files):\n"
             "ACTION: HERMES"
         )
 
