@@ -122,6 +122,41 @@ class GroqSummarizer:
             log.error("Groq Brain Router failed: %s. Falling back to HERMES.", exc)
             return ("HERMES", None)
 
+    def generate_direct_answer(self, user_input: str) -> str:
+        """
+        Uses Groq LLM to generate a direct 1-2 sentence spoken answer when primary agents are unavailable.
+        """
+        if not self.client:
+            return "I am currently unable to reach the subagent network. Please try again."
+
+        system_prompt = (
+            "You are JARVIS. Answer the user prompt directly in 1 or 2 concise, confident spoken sentences "
+            "suitable for text-to-speech. Omit markdown formatting, bullet points, and headers."
+        )
+
+        try:
+            completion = self.client.chat.completions.create(
+                model="qwen/qwen3.8-27b",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_input},
+                ],
+                max_tokens=150,
+                temperature=0.3,
+            )
+            # Track Groq API call
+            try:
+                from .api_battery_tracker import api_battery
+                api_battery.record_groq_call()
+            except ImportError:
+                pass
+
+            res = (completion.choices[0].message.content or "").strip()
+            return res.replace("*", "").replace("#", "")
+        except Exception as exc:
+            log.error("Groq fallback generation failed: %s", exc)
+            return "I am experiencing temporary network issues. Please try again shortly."
+
 
 # Global singleton instance
 groq_summarizer = GroqSummarizer()

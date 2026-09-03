@@ -32,17 +32,21 @@ class IntentRouter:
 
     def execute_hermes(self, user_input: str, session: Session) -> str:
         """
-        Executes Hermes Antigravity subagents for complex tasks requiring system tools / search,
-        then condenses output using Groq.
+        Executes Hermes Antigravity subagents for complex tasks requiring system tools / search.
+        If Antigravity hits a 429 Rate Limit error or Harness crash, seamlessly falls back to Groq LLM.
         """
         log.info("Executing Hermes Orchestrator for prompt: '%s'", user_input)
         session.add_interaction("user", user_input)
         try:
             raw_response = asyncio.run(process_with_agents(user_input))
-            response = groq_summarizer.condense_response(raw_response)
+            if "Gemini API rate limit reached" in raw_response:
+                log.warning("Gemini 429 rate limit detected. Falling back to Groq LLM direct answer...")
+                response = groq_summarizer.generate_direct_answer(user_input)
+            else:
+                response = groq_summarizer.condense_response(raw_response)
         except Exception as exc:
-            log.error("Hermes Orchestrator error: %s", exc)
-            response = f"I encountered an error processing your request: {exc}"
+            log.warning("Hermes Orchestrator failed (%s). Falling back to Groq LLM direct answer...", exc)
+            response = groq_summarizer.generate_direct_answer(user_input)
 
         session.add_interaction("assistant", response)
         return response
