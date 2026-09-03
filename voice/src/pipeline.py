@@ -191,12 +191,19 @@ class Pipeline:
             self._pre_roll.clear()
             if self._wakeword.process_chunk(raw_bytes):
                 log.info("Wake word triggered! Transitioning to IDLE.")
-                print("\n[JARVIS] Listening...")
                 
-                # Speak ultra-short acknowledgment so mic opens instantly for user speech
+                try:
+                    from core.src.quotes import get_greeting_quote
+                    greeting = get_greeting_quote()
+                except Exception:
+                    greeting = "Hi Kamal, how are you today? Here is an idea for today: Excellence is a habit."
+
+                print(f"\n[JARVIS] {greeting}")
+                
+                # Speak greeting + quote in a background thread so user listens first
                 import threading
                 from .tts import tts_engine
-                threading.Thread(target=tts_engine.speak, args=("Listening!",), daemon=True).start()
+                threading.Thread(target=tts_engine.speak, args=(greeting,), daemon=True).start()
                 
                 self._state = _IDLE
             return

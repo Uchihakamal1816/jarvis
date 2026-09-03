@@ -58,10 +58,10 @@ def build_orchestrator_config() -> LocalAgentConfig:
         ),
     )
 
-    # 4. System Admin & Health Agent Config - PC metrics, SSH health, Folder Search & Code Reading
+    # 4. System Admin & Health Agent Config - Root PC access, metrics, SSH health, Folder Search & Code Reading
     sys_admin_agent = types.SubagentConfig(
         name="sys_admin_agent",
-        description="Expert at checking PC system metrics (CPU, RAM, disk space, uptime), testing SSH connectivity health, searching PC folders, finding files, and reading code files across directories.",
+        description="Expert at checking PC system metrics (CPU, RAM, disk space, uptime), testing SSH connectivity health, and searching, finding, listing, and reading files across all directories starting from root (/) and /home/uchihakamal.",
         capabilities=types.SubagentCapabilities(
             agent_behavior=types.AgentBehavior.AUTONOMOUS,
             enabled_tools=[
@@ -77,7 +77,7 @@ def build_orchestrator_config() -> LocalAgentConfig:
     # 5. Optimized Supervisor Configuration using model: gemini-3.5-flash-lite
     config = LocalAgentConfig(
         model="gemini-3.5-flash-lite",
-        system_instructions="You are the Hermes Supervisor for JARVIS. Delegate prompts to specialized subagents. Keep all responses under 3 sentences directly without excess length.",
+        system_instructions="You are the Hermes Supervisor for JARVIS. Delegate prompts to specialized subagents. sys_admin_agent has root-level access (/) to search, inspect, and run diagnostic commands across any folder on the system. Keep all final voice responses under 3 sentences directly.",
         subagents=[research_agent, coding_agent, browser_agent, sys_admin_agent],
         capabilities=types.CapabilitiesConfig(
             enable_subagents=True,

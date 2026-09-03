@@ -240,3 +240,10 @@ def get_thinking_phrase() -> str:
     phrase = random.choice(PRE_PHRASES)
     quote = get_random_quote()
     return f"{phrase} {quote}"
+
+
+def get_greeting_quote() -> str:
+    """Returns the personalized greeting and inspirational quote on wake word trigger."""
+    quote = get_random_quote()
+    return f"Hi Kamal, how are you today? Here is an idea for today: {quote}"
+
